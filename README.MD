@@ -4,30 +4,28 @@ Description:
 
 Requirements:
 
-> &nbsp;Rust (stable version)
-> &nbsp;Time
-> &nbsp;Curiousity
-> &nbsp;Thankfulness
+- &nbsp;Rust (stable version)
+- &nbsp;Time
+- &nbsp;Curiousity
+- &nbsp;Thankfulness
 
 Usage:
 
 1. Compile:
 
-   > &nbsp;&nbsp;cargo build --release
+   - &nbsp;&nbsp;cargo build --release
 
 2. HELP:
 
-   > Windows:
-   >
-   > > &nbsp;&nbsp;.\target\release\hashcash_pow.exe
-   > > Linux:
-   > > &nbsp;&nbsp;./target/release/hashcash_pow
+   - Windows:
+     - &nbsp;&nbsp;.\target\release\hashcash_pow.exe
+   - Linux:
+     - &nbsp;&nbsp;./target/release/hashcash_pow
 
 3. Run
-   > &nbsp;&nbsp;exec name [num of hex zeroes needed in the hash] [num of threads to be spawned]
+   - &nbsp;&nbsp;exec name [num of hex zeroes needed in the hash] [num of threads to be spawned]
 4. Examples:
-   > On Windows:
-   >
-   > > &nbsp;&nbsp;&nbsp;.\target\release\hashcash_pow.exe 5 4
-   > > On Linux:
-   > > &nbsp;&nbsp;&nbsp;./target/release/hashcash_pow 5 4
+   - Windows:
+     - &nbsp;&nbsp;&nbsp;.\target\release\hashcash_pow.exe 5 4
+   - Linux:
+     - &nbsp;&nbsp;&nbsp;./target/release/hashcash_pow 5 4
