@@ -1,6 +1,6 @@
 Description:
 
-- this program written in Rust-lang, demonstrates the working of proof of work (hashcash) concept used by many blockchains as consensus mechanism (for agreement purpose) and other applications (for mitigation of DOS attack!).
+- this program written in Rust-lang, demonstrates the working of proof-of-work (hashcashPOW) concept used by many blockchains as consensus mechanism (for agreement purpose) and other applications (for mitigation of DOS attack!).
 
 Requirements:
 
