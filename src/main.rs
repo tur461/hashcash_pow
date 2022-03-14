@@ -43,20 +43,20 @@ fn perform_pow(msg: String, zeros: u8, THREADS: usize) {
     let (tx, rx): (Sender<SharedData>, Receiver<SharedData>) = mpsc::channel();
     
     // outer-loop for finding suitable ctr!
-    let mut threads = vec![];
     let mut bus_ = Bus::<bool>::new(THREADS);
     let start = Instant::now();
     for i in 0..THREADS {
         let tx_n = tx.clone();
         let m = msg.clone();
         let bs = bus_.add_rx();
-        let h = thread::spawn(move || search_for_hash(ctr_base, dv, i as u64, zeros, m, tx_n, bs));
-        threads.push(h);
+        thread::spawn(move || search_for_hash(ctr_base, dv, i as u64, zeros, m, tx_n, bs));
     }
     
     println!("Calculating...");
     let sdat: SharedData = rx.recv().unwrap();
     if sdat.found {
+        // lets send terminating signal to other threads!
+        bus_.broadcast(true);
         let duration = start.elapsed().as_secs_f64();
         println!(
             "\nCompleted!:\n\nBy Thread #:\t\t{}\n\nHash:\t\t\t{}\nMSG:\t\t\t{}\nStart ctr:\t\t{}\nEnd ctr:\t\t{}\nctr count:\t\t{}", 
@@ -78,7 +78,6 @@ fn perform_pow(msg: String, zeros: u8, THREADS: usize) {
             duration, 
             (sdat.iterations as f64/duration).ceil()
         );
-        bus_.broadcast(true);
     }
 }
 
@@ -113,6 +112,7 @@ fn search_for_hash(
             match brx.try_recv() {
                 Ok(found) => {
                     if found {
+                        // terminating this loop (controlled by other threads using BUS)
                         // println!("Someone found the hash!. terminating thread # {}", _i);
                         break;
                     }
