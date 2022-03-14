@@ -1,0 +1,11 @@
+[package]
+name = "hashcash_pow"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bus = "2.2.3"
+rand = "0.8.5"
+sha-1 = "0.10.0"
