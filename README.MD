@@ -12,10 +12,11 @@ Usage:
 
 1. Compile:
    - cargo build --release
-2. Run
-   - HELP:
-   * Windows: .\target\release\hashcash_pow.exe
-   * Linux: ./target/release/hashcash_pow
+2. HELP:
+   - Windows: .\target\release\hashcash_pow.exe
+   - Linux: ./target/release/hashcash_pow
+3. Run
+
    - exec name (from target->release) <num of hex zeroes needed in the hash> <num of threads to be spawned>
    - eg., .\target\release\hashcash_pow.exe 5 4 (on windows)
    - eg., ./target/release/hashcash_pow 5 4 (on Linux)
