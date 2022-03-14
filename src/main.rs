@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+
 use std::env;
 use rand::Rng;
 use std::thread;
@@ -37,14 +41,19 @@ fn main() {
 #[allow(non_snake_case)]
 fn perform_pow(msg: String, zeros: u8, THREADS: usize) {
     let mut rng = rand::thread_rng();
+    // counter base is choosen as a random number
     let ctr_base: u64 = rng.gen();
+    // lets divide whole value range into chunks each for # of THREADS
     let diff = u64::MAX - ctr_base;
     let dv: u64 = diff/(THREADS as u64);
-    let (tx, rx): (Sender<SharedData>, Receiver<SharedData>) = mpsc::channel();
-    
-    // outer-loop for finding suitable ctr!
+
+    // create bus with THREAD # of channels to send signals from parent thread to child threads
     let mut bus_ = Bus::<bool>::new(THREADS);
+    // create multi producer single consumer channel for communication from child threads to parent thread
+    let (tx, rx): (Sender<SharedData>, Receiver<SharedData>) = mpsc::channel();
+    // start benchmark timing
     let start = Instant::now();
+    
     for i in 0..THREADS {
         let tx_n = tx.clone();
         let m = msg.clone();
@@ -55,9 +64,11 @@ fn perform_pow(msg: String, zeros: u8, THREADS: usize) {
     println!("Calculating...");
     let sdat: SharedData = rx.recv().unwrap();
     if sdat.found {
-        // lets send terminating signal to other threads!
-        bus_.broadcast(true);
+        // lets conclude the benchmark timing
         let duration = start.elapsed().as_secs_f64();
+        // lets broadcast terminating signal to all child threads using BUS.
+        bus_.broadcast(true);
+        
         println!(
             "\nCompleted!:\n\nBy Thread #:\t\t{}\n\nHash:\t\t\t{}\nMSG:\t\t\t{}\nStart ctr:\t\t{}\nEnd ctr:\t\t{}\nctr count:\t\t{}", 
             sdat.thread_id,
@@ -67,12 +78,14 @@ fn perform_pow(msg: String, zeros: u8, THREADS: usize) {
             sdat.end_ctr,
             sdat.iterations
         );
+
         println!(
             "# of threads:\t\t{}\n# of Zeros (hex):\t{}\n# of zeros (bin):\t{}", 
             THREADS,
             zeros,
             zeros*4
         );
+        
         println!(
             "Time taken:\t\t{} sec\nSpeed:\t\t\t{} iter/sec", 
             duration, 
@@ -87,38 +100,41 @@ fn search_for_hash(
     _i: u64, 
     zeros: u8, 
     msg: String, 
-    prod: mpsc::Sender<SharedData>, 
+    tx: mpsc::Sender<SharedData>, 
     mut brx: BusReader<bool>
 ) {
     // println!("Starting thread # {}", _i);
     let mut ctr = ctr_base + (dv * _i);
     let end = ctr_base + (dv * (_i+1)) - 1;
     let msg_ = msg.as_str();
+
     loop {
+        // here we receive broadcasted signal from BUS!
+        match brx.try_recv() {
+            Ok(found) => {
+                if found {
+                    // terminating this loop (controlled by other threads using BUS)
+                    // println!("Someone found the hash!. terminating thread # {}", _i);
+                    break;
+                }
+            }
+            Err(..) => (),
+        }
+        // lets calculate SHA-1 (160 bit or 40 hex) hash with current counter value
         let mut _msg = String::from(msg_);
         _msg.push_str(&" ");
         _msg.push_str(&ctr.to_string());
         let mut hasher = Sha1::new();
         hasher.update(_msg.as_bytes());
-        let result = hasher.finalize().to_vec();
+        let result = hasher.finalize();
         
         let num_of_zeros: usize = zeros as usize;
         let mut i = 0;
         let mut j = 0;
         let mut got_it: bool = true;
         
-        // inner-loop for checking # of zeros!
+        // inner-loop for checking required # of zeros in the calculated hash
         loop {
-            match brx.try_recv() {
-                Ok(found) => {
-                    if found {
-                        // terminating this loop (controlled by other threads using BUS)
-                        // println!("Someone found the hash!. terminating thread # {}", _i);
-                        break;
-                    }
-                }
-                Err(..) => (),
-            }
             if i>0 && i%2 == 0 {
                 j += 1;
             }
@@ -136,12 +152,14 @@ fn search_for_hash(
         } 
 
         // terminating condition of outer loop
-        if got_it && i == num_of_zeros-1 {
+        if num_of_zeros == 0 || got_it && i == num_of_zeros-1 {
             let mut tmp_s: String = "".to_owned();
+            // lets build the final hash string from bytes vector
             for r in result {
                 tmp_s.push_str(&tox(r).as_str());
             }
             let st = ctr_base + (dv * _i);
+            // prepare final data to be transmitted out via mpsc
             let sdat = SharedData{
                 start_ctr: st,
                 end_ctr: ctr,
@@ -151,21 +169,26 @@ fn search_for_hash(
                 thread_id: _i as usize,
                 found: true,
             };
-            // println!("Found in thread # {}.", _i);
-            match prod.send(sdat) {
+            
+            // once the hash is found, we will send the data to parent thread
+            match tx.send(sdat) {
                 Ok(_)  => {},
                 Err(_) => println!("Receiver has stopped listening, dropping thread number {}.", _i),
             }
+            // finally end the loop, hence thread will terminate!
             break;
         }
+
+        // if all ctr values exhausted for this thread!, end the loop
         if ctr == end {
-            // println!("Thread # {} completed.", _i);
             break;
         }
+        // lets increment counter to check for another hash!
         ctr += 1;
     }
 }
 
+// utility fn to convert decimal to 1 byte hex chars 
 fn tox(d: u8) -> String {
     if d < 16 {
         format!("0{:x}", d)
